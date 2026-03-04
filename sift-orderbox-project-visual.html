@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIFT on OrderBox - Project Visual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-body: "Instrument Serif", Georgia, serif;
+      --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+      --bg: #f7f4ef;
+      --surface: #fffdfa;
+      --surface-2: #f2ece5;
+      --surface-elevated: #fffcf8;
+      --border: rgba(37, 45, 58, 0.12);
+      --border-bright: rgba(37, 45, 58, 0.22);
+      --text: #1f2a39;
+      --text-dim: #5d6673;
+      --accent: #1e3a5f;
+      --accent-dim: rgba(30, 58, 95, 0.08);
+      --gold: #d4a73a;
+      --gold-dim: rgba(212, 167, 58, 0.12);
+      --green: #3c7a4e;
+      --green-dim: rgba(60, 122, 78, 0.12);
+      --orange: #b86a1d;
+      --orange-dim: rgba(184, 106, 29, 0.13);
+      --red: #9e2e2e;
+      --red-dim: rgba(158, 46, 46, 0.12);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #101926;
+        --surface: #172233;
+        --surface-2: #1d2a3d;
+        --surface-elevated: #202f45;
+        --border: rgba(255, 255, 255, 0.09);
+        --border-bright: rgba(255, 255, 255, 0.18);
+        --text: #e6edf6;
+        --text-dim: #a8b3c1;
+        --accent: #8ab0de;
+        --accent-dim: rgba(138, 176, 222, 0.14);
+        --gold: #f4cd70;
+        --gold-dim: rgba(244, 205, 112, 0.16);
+        --green: #79c58f;
+        --green-dim: rgba(121, 197, 143, 0.15);
+        --orange: #f2aa66;
+        --orange-dim: rgba(242, 170, 102, 0.16);
+        --red: #e48b8b;
+        --red-dim: rgba(228, 139, 139, 0.18);
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--text);
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 10% 0%, var(--gold-dim) 0%, transparent 45%),
+        radial-gradient(ellipse at 90% 100%, var(--accent-dim) 0%, transparent 50%);
+      padding: 32px 40px 56px;
+      overflow-wrap: break-word;
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 0 36px;
+    }
+
+    .main { min-width: 0; }
+
+    .toc {
+      position: sticky;
+      top: 20px;
+      align-self: start;
+      max-height: calc(100dvh - 40px);
+      overflow-y: auto;
+      padding: 12px 0;
+      grid-row: 1 / -1;
+    }
+
+    .toc-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.8px;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .toc a {
+      display: block;
+      text-decoration: none;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.35;
+      padding: 6px 8px;
+      margin-bottom: 2px;
+      border-radius: 5px;
+      border-left: 2px solid transparent;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+
+    .toc a:hover { color: var(--text); background: var(--surface-2); }
+    .toc a.active { color: var(--text); border-left-color: var(--accent); }
+
+    h1 {
+      font-size: clamp(38px, 5vw, 64px);
+      font-weight: 400;
+      line-height: 1.02;
+      margin-bottom: 10px;
+      letter-spacing: -0.4px;
+    }
+
+    .subtitle {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .lead {
+      font-size: clamp(22px, 1.5vw + 14px, 31px);
+      max-width: 34ch;
+      line-height: 1.35;
+      margin-bottom: 28px;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .kpi-card {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      min-width: 0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .kpi-val {
+      font-size: clamp(24px, 2.2vw, 34px);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kpi-lbl {
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-dim);
+    }
+
+    .sec-head {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.7px;
+      color: var(--accent);
+      margin: 30px 0 10px;
+      padding-top: 2px;
+      border-top: 1px solid var(--border);
+      scroll-margin-top: 24px;
+    }
+
+    .ve-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
+      min-width: 0;
+    }
+
+    .ve-card--hero {
+      background: var(--surface-elevated);
+      border-color: color-mix(in srgb, var(--border) 55%, var(--gold) 45%);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .ve-card h2 {
+      font-size: 30px;
+      font-weight: 400;
+      margin-bottom: 8px;
+      line-height: 1.15;
+    }
+
+    .ve-card p {
+      font-size: 18px;
+      line-height: 1.45;
+      color: var(--text);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .pill {
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .grid-2, .grid-3 {
+      display: grid;
+      gap: 12px;
+    }
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 > *, .grid-3 > * { min-width: 0; }
+
+    .phase-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      color: var(--accent);
+    }
+
+    .node-list {
+      list-style: none;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-dim);
+    }
+    .node-list li {
+      position: relative;
+      padding-left: 14px;
+    }
+    .node-list li::before {
+      content: "›";
+      position: absolute;
+      left: 0;
+      color: var(--text-dim);
+    }
+
+    .pipeline {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .step {
+      min-width: 160px;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-2);
+      padding: 10px 12px;
+    }
+
+    .step-num {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .step-name {
+      font-size: 18px;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+
+    .step-info {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.45;
+    }
+
+    .step-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 5px;
+      color: var(--border-bright);
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .table-scroll { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    th {
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      padding: 11px 14px;
+      background: var(--surface-2);
+      border-bottom: 2px solid var(--border-bright);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tbody tr:nth-child(even) { background: var(--accent-dim); }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 6px;
+      padding: 3px 9px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      white-space: nowrap;
+    }
+
+    .status::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-pending { color: var(--orange); background: var(--orange-dim); }
+    .status-partial { color: var(--green); background: var(--green-dim); }
+
+    .decision {
+      border-left: 3px solid var(--gold);
+      padding-left: 10px;
+      margin-bottom: 9px;
+      font-size: 17px;
+      line-height: 1.4;
+    }
+
+    .decision small {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+
+    .risk {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-2);
+      padding: 10px 12px;
+    }
+
+    .risk h3 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      color: var(--red);
+    }
+
+    .risk p {
+      font-size: 15px;
+      line-height: 1.5;
+      color: var(--text-dim);
+    }
+
+    a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
+    .foot {
+      margin-top: 22px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 1000px) {
+      .wrap { grid-template-columns: 1fr; }
+      body { padding-top: 0; }
+
+      .toc {
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        max-height: none;
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        overflow-x: auto;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+        margin: 0 -40px;
+        padding: 10px 40px;
+      }
+
+      .toc-title { display: none; }
+      .toc a {
+        white-space: nowrap;
+        border-left: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 4px 4px 0 0;
+        font-size: 10px;
+        flex-shrink: 0;
+      }
+      .toc a.active {
+        border-left: none;
+        border-bottom-color: var(--accent);
+        background: var(--surface);
+      }
+
+      .main { padding-top: 20px; }
+      .sec-head { scroll-margin-top: 54px; }
+      .kpi-row { grid-template-columns: 1fr 1fr; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 0 16px 24px; }
+      .toc { margin: 0 -16px; padding: 10px 16px; }
+      .kpi-row { grid-template-columns: 1fr; }
+      .step-arrow { display: none; }
+      .pipeline { gap: 8px; flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav class="toc" id="toc">
+      <div class="toc-title">Contents</div>
+      <a href="#s1">1. Scope</a>
+      <a href="#s2">2. Phases</a>
+      <a href="#s3">3. Transaction Flow</a>
+      <a href="#s4">4. Open Questions</a>
+      <a href="#s5">5. Decisions</a>
+      <a href="#s6">6. Risks and Actions</a>
+    </nav>
+
+    <main class="main">
+      <h1>SIFT on OrderBox</h1>
+      <p class="subtitle">EPMO-3220 · Wholesale fraud prevention integration visual</p>
+      <p class="lead">Integrate Sift fraud scoring into wholesale OrderBox payment and wallet flows, starting with manage-billing exposure where chargeback risk is direct.</p>
+
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-val">Phase 1</div>
+          <div class="kpi-lbl">Current Delivery Stage</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val">14</div>
+          <div class="kpi-lbl">Vendor Questions Open</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val">4</div>
+          <div class="kpi-lbl">Core Decision Points</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-val">1+ year</div>
+          <div class="kpi-lbl">Full Rollout Estimate</div>
+        </div>
+      </div>
+
+      <div id="s1" class="sec-head">1 - Scope</div>
+      <section class="ve-card ve-card--hero">
+        <h2>Project Envelope</h2>
+        <p>The initial implementation focuses on manage-billing customers in panels where direct payment exposure is highest. In-scope events are <code>$create_order</code> and <code>$transaction</code> for both direct payment and wallet withdrawals.</p>
+        <div class="pill-row">
+          <span class="pill">Panels: SuperSite, Optimus, CCB, Wipro</span>
+          <span class="pill">Decisions: Accept, Block, Watch</span>
+          <span class="pill">Hierarchy: Newfold → Reseller → Sub-reseller → Customer</span>
+        </div>
+      </section>
+
+      <div id="s2" class="sec-head">2 - Phases</div>
+      <section class="grid-2">
+        <article class="ve-card">
+          <div class="phase-title">Phase 1 - current</div>
+          <ul class="node-list">
+            <li>Manage-billing scenarios prioritized for chargeback risk</li>
+            <li>Two event families wired first: order creation and payment transaction</li>
+            <li>Wallet deductions included so high-risk wallet behavior is visible</li>
+            <li>Delivery sequence designed for incremental operational readiness</li>
+          </ul>
+        </article>
+        <article class="ve-card">
+          <div class="phase-title">Phase 2 - future expansion</div>
+          <ul class="node-list">
+            <li>Broaden to full OrderBox transaction coverage</li>
+            <li>Consider additional gateway scenarios and enrichment paths</li>
+            <li>Improve customer messaging and notification quality</li>
+            <li>Refine fraud automation once baseline event quality is stable</li>
+          </ul>
+        </article>
+      </section>
+
+      <div id="s3" class="sec-head">3 - Transaction Flow</div>
+      <section class="ve-card">
+        <div class="pipeline">
+          <div class="step">
+            <div class="step-num">Step 1</div>
+            <div class="step-name">Checkout Starts</div>
+            <div class="step-info">Order/cart initiated in panel</div>
+          </div>
+          <div class="step-arrow">→</div>
+          <div class="step">
+            <div class="step-num">Step 2</div>
+            <div class="step-name">$create_order</div>
+            <div class="step-info">Initial order event sent for scoring</div>
+          </div>
+          <div class="step-arrow">→</div>
+          <div class="step">
+            <div class="step-num">Step 3A</div>
+            <div class="step-name">Direct Payment</div>
+            <div class="step-info">$transaction with payment context</div>
+          </div>
+          <div class="step-arrow">or</div>
+          <div class="step">
+            <div class="step-num">Step 3B</div>
+            <div class="step-name">Wallet Withdrawal</div>
+            <div class="step-info">$transaction with wallet context</div>
+          </div>
+          <div class="step-arrow">→</div>
+          <div class="step">
+            <div class="step-num">Step 4</div>
+            <div class="step-name">Workflow Decision</div>
+            <div class="step-info">Accept, Watch, or Block decision path</div>
+          </div>
+        </div>
+        <div class="foot">Note: account-level and order-level decisions are both required, with careful guardrails for large reseller entities.</div>
+      </section>
+
+      <div id="s4" class="sec-head">4 - Open Questions</div>
+      <section class="table-wrap">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Question Themes</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Integration architecture</td>
+                <td>2FA interaction, multi-order transactions, fingerprinting fallback, account relationship mapping, wallet event schema</td>
+                <td><span class="status status-pending">5 pending</span></td>
+              </tr>
+              <tr>
+                <td>Payment and transaction gaps</td>
+                <td>Redirect gateway method gaps, missing device data substitutes, delayed capture and authorization handling</td>
+                <td><span class="status status-pending">3 pending</span></td>
+              </tr>
+              <tr>
+                <td>Operational model</td>
+                <td>Brand-specific OTP behavior, SMS coverage fallback, historical backfill, parent-child login semantics, wallet refund treatment</td>
+                <td><span class="status status-pending">5 pending</span></td>
+              </tr>
+              <tr>
+                <td>Reseller alerting</td>
+                <td>Merchant field support confirmed; automation design still open</td>
+                <td><span class="status status-partial">1 partial</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div id="s5" class="sec-head">5 - Decisions</div>
+      <section class="ve-card">
+        <div class="decision">Start with manage-billing scope to reduce immediate chargeback risk.<small>Decision date: 2026-02-25</small></div>
+        <div class="decision">Assign wholesale scenario ownership to the PM track aligned with reseller flows.<small>Decision date: 2026-02-25</small></div>
+        <div class="decision">Screen wallet transactions (including deposit/withdrawal paths) except renewals.<small>Decision date: 2026-02-26</small></div>
+        <div class="decision">Support both order-level denial and account-level controls.<small>Decision date: 2026-02-26</small></div>
+      </section>
+
+      <div id="s6" class="sec-head">6 - Risks and Actions</div>
+      <section class="grid-3">
+        <article class="risk">
+          <h3>Operational Load Risk</h3>
+          <p>Customer-level blocking can spike fraud-ops review volume. Volume baseline and staffing assumptions need to be modeled before aggressive rule rollout.</p>
+        </article>
+        <article class="risk">
+          <h3>Signal Quality Risk</h3>
+          <p>Reseller and API-heavy paths have weaker browser fingerprinting. Additional headers and alternative device hints must be agreed and standardized.</p>
+        </article>
+        <article class="risk">
+          <h3>Model Warm-Up Risk</h3>
+          <p>Insufficient historical backfill can degrade early scoring quality. Minimum dataset contract with Sift is still pending and may delay confidence.</p>
+        </article>
+      </section>
+
+      <p class="foot">
+        References:
+        <a href="https://newfold.atlassian.net/browse/EPMO-3220" target="_blank" rel="noreferrer">EPMO-3220</a> ·
+        <a href="https://developers.sift.com/docs/curl/events-api" target="_blank" rel="noreferrer">Events API</a> ·
+        <a href="https://developers.sift.com/docs/curl/decisions-api" target="_blank" rel="noreferrer">Decisions API</a>
+      </p>
+    </main>
+  </div>
+
+  <script>
+    (function() {
+      var toc = document.getElementById("toc");
+      var links = toc.querySelectorAll("a");
+      var sections = [];
+
+      links.forEach(function(link) {
+        var id = link.getAttribute("href").slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ id: id, el: el, link: link });
+      });
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (!entry.isIntersecting) return;
+          links.forEach(function(l) { l.classList.remove("active"); });
+          var match = sections.find(function(s) { return s.el === entry.target; });
+          if (!match) return;
+          match.link.classList.add("active");
+          if (window.innerWidth <= 1000) {
+            match.link.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+          }
+        });
+      }, { rootMargin: "-10% 0px -80% 0px" });
+
+      sections.forEach(function(s) { observer.observe(s.el); });
+
+      links.forEach(function(link) {
+        link.addEventListener("click", function(e) {
+          e.preventDefault();
+          var id = link.getAttribute("href").slice(1);
+          var el = document.getElementById(id);
+          if (!el) return;
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          history.replaceState(null, "", "#" + id);
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
