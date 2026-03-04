@@ -664,9 +664,6 @@
           var match = sections.find(function(s) { return s.el === entry.target; });
           if (!match) return;
           match.link.classList.add("active");
-          if (window.innerWidth <= 1000) {
-            match.link.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-          }
         });
       }, { rootMargin: "-10% 0px -80% 0px" });
 
@@ -679,6 +676,9 @@
           var el = document.getElementById(id);
           if (!el) return;
           el.scrollIntoView({ behavior: "smooth", block: "start" });
+          if (window.innerWidth <= 1000) {
+            link.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+          }
           history.replaceState(null, "", "#" + id);
         });
       });
